@@ -6,7 +6,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QSize, Qt, QTimer
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QDoubleSpinBox, QSpinBox,\
-      QLineEdit, QPushButton, QFrame, QTabWidget, QTableWidget, QTableWidget, QTableWidgetItem, QAbstractItemView, QCheckBox, QWidget
+      QLineEdit, QPushButton, QFrame, QTabWidget, QTableWidget, QTableWidget, QTableWidgetItem, QAbstractItemView, QCheckBox, QWidget, QGridLayout
 
 
 # Subclass QMainWindow to customize your application's main window
@@ -44,6 +44,8 @@ class MainWindow(QWidget):
             margin-right: 1px;
         }
         """
+
+        self.colors = ['black', 'red', 'orange', 'brown', 'green', 'blue', 'indigo', 'violet']
         
         self.setStyleSheet(stylesheet)
 
@@ -195,32 +197,42 @@ class MainWindow(QWidget):
 
         return specific_settings_pattern_layout
 
+    def set_chanel_input(self, i):
+        print('!!!!!!!', i)
+
     def specific_user_settings(self):
         specific_settings_user_layout = QVBoxLayout()
 
         return specific_settings_user_layout
 
     def plot(self):
+        self.plot_layout = QGridLayout()
 
-        colors = ['black', 'red', 'orange', 'brown', 'green', 'blue', 'indigo', 'violet']
-
-        plot_layout = QVBoxLayout()
 
         for i in range(8):
             plot_graph = pg.PlotWidget()
             plot_graph.setLimits(xMin = 0, yMin = -1, xMax=6, yMax=2)
             plot_graph.setMouseEnabled(x=False, y=False)
+            
             plot_graph.getPlotItem().hideAxis('bottom')
             plot_graph.getPlotItem().hideAxis('left')
             time = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]
             temperature = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
-            plot_graph.plot(time, temperature, pen={'color':colors[i]})
+            plot_graph.plot(time, temperature, pen={'color':self.colors[i]})
             plot_graph.setBackground('white')
 
-            plot_layout.addWidget(plot_graph)
+            plot_cb = QCheckBox()
+            plot_cb.clicked.connect(lambda: self.set_chanel_input(i))
+
+            plot_label = QLabel(str(i))
+
+            self.plot_layout.addWidget(plot_cb, i, 0)
+            self.plot_layout.addWidget(plot_label, i, 1)
+            self.plot_layout.addWidget(plot_graph, i, 2)
+
 
         plot_frame = QFrame(self)
-        plot_frame.setLayout(plot_layout)
+        plot_frame.setLayout(self.plot_layout)
         plot_frame.setFrameShape(QFrame.Panel)
 
         return plot_frame
@@ -266,39 +278,6 @@ class MainWindow(QWidget):
     def initData(self):
         pass
 
-
-class StopWatch():
-    def __init__(self):
-        # counter
-        self.count = 0
-
-        # creating flag
-        self.flag = False
-
-        # creating a label to show the time
-        self.label = QLabel(self)
-
-        self.label.setText(str(datetime.timedelta(seconds=0)))
-
-    def Start(self):
-        self.timer = QTimer(self)
-
-        # adding action to timer
-        self.timer.timeout.connect(self.showTime)
-
-        # update the timer every tenth second
-        self.timer.start(1000)
-
-
-    def showTime(self):
-        self.count+= 1
-        self.label.setText(str(datetime.timedelta(seconds=self.count)))
-
-
-    def Stop(self):
-        self.timer.stop()
-        self.count = 0
-        self.label.setText(str(datetime.timedelta(seconds=self.count)))
 
 app = QApplication(sys.argv)
 
