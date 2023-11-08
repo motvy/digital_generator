@@ -1,6 +1,6 @@
-from customs import NewQAbstractSpinBox
+from utils import NewQAbstractSpinBox
 
-from PyQt5.QtGui import QIntValidator
+from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFrame, QTabWidget, QSpinBox, QCheckBox, QGridLayout
 
@@ -47,15 +47,27 @@ class PatternSpecificSettings:
 
     def select_channel(self):
         channel_label = QLabel('Выбранные каналы')
+        self.select_all_channels_cb = QCheckBox()
+        self.select_all_channels_cb.clicked.connect(lambda: self.select_all_channels())
+
+        channel_label_layout = QHBoxLayout()
+        channel_label_layout.addWidget(self.select_all_channels_cb)
+        channel_label_layout.addWidget(channel_label)
+        channel_label_layout.addStretch()
+
+
         self.selected_channel_layout = QGridLayout()
         for i in range(8):
             label = QLabel(str(i))
             label.setAlignment(Qt.AlignCenter)
             self.selected_channel_layout.addWidget(label, 0, i, alignment=Qt.AlignCenter)
-            self.selected_channel_layout.addWidget(QCheckBox(), 1, i, alignment=Qt.AlignCenter)
-        
+
+            channel_cb = QCheckBox()
+            channel_cb.clicked.connect(lambda: self.get_selected_channels())
+            self.selected_channel_layout.addWidget(channel_cb, 1, i, alignment=Qt.AlignCenter)
+
         channel_layout = QVBoxLayout()
-        channel_layout.addWidget(channel_label)
+        channel_layout.addLayout(channel_label_layout)
         channel_layout.addLayout(self.selected_channel_layout)
 
         return channel_layout
@@ -68,12 +80,12 @@ class PatternSpecificSettings:
         self.period_input.setMaximum(255)
         self.period_input.setSingleStep(1)
         self.period_input.lineEdit().setValidator(QIntValidator(1, 255, self.specific_settings.main_window))
-        self.period_input.valueChanged.connect(self.update_k_input)
+        # self.period_input.valueChanged.connect(self.update_k_input)
 
         reset_button = QPushButton('Сброс')
-        reset_button.clicked.connect(self.reset_period_settings)
+        reset_button.clicked.connect(lambda: self.reset_period_settings())
         apply_button = QPushButton('Применить')
-        apply_button.clicked.connect(self.apply_period_settings)
+        apply_button.clicked.connect(lambda: self.apply_period_settings())
         button_layout = QHBoxLayout()
         button_layout.addWidget(reset_button)
         button_layout.addWidget(apply_button)
@@ -89,22 +101,46 @@ class PatternSpecificSettings:
 
         return period_frame
 
+    def get_selected_channels(self):
+        channels = []
+        for i in range(self.selected_channel_layout.columnCount()):
+            cb = self.selected_channel_layout.itemAtPosition(1, i).widget()
+            if cb.isChecked():
+                channels.append(i)
+
+        checked_all = True if len(channels) == self.selected_channel_layout.columnCount() else False
+        self.select_all_channels_cb.setChecked(checked_all)
+
+        return channels
+
+    def select_all_channels(self):
+        checked = False if len(self.get_selected_channels()) == self.selected_channel_layout.columnCount() else True
+        for i in range(self.selected_channel_layout.columnCount()):
+            self.selected_channel_layout.itemAtPosition(1, i).widget().setChecked(checked)
+        
+        self.select_all_channels_cb.setChecked(checked)
+
+
     def reset_period_settings(self):
-        pass
+        print('reset_period_settings')
 
     def apply_period_settings(self):
+        self.update_k_input()
+
+    def update_period_input(self):
         pass
 
     def k_settings(self):
         k_label = QLabel('Коэффициент заполнения (%)')
-        period = self.period_input.value()*2
-        self.k_input = NewQAbstractSpinBox([int(i/period*100) for i in range(period+1) if i/period*100 % 1 == 0])
+        # period = self.period_input.value()*2
+        # self.k_input = NewQAbstractSpinBox([int(i/period*100) for i in range(period+1) if i/period*100 % 1 == 0])
+        self.k_input = NewQAbstractSpinBox()
         self.k_input.lineEdit().setReadOnly(True)
 
         reset_button = QPushButton('Сброс')
-        reset_button.clicked.connect(self.reset_k_settings)
+        reset_button.clicked.connect(lambda: self.reset_k_settings())
         apply_button = QPushButton('Применить')
-        apply_button.clicked.connect(self.apply_k_settings)
+        apply_button.clicked.connect(lambda: self.apply_k_settings())
         button_layout = QHBoxLayout()
         button_layout.addWidget(reset_button)
         button_layout.addWidget(apply_button)
@@ -121,19 +157,26 @@ class PatternSpecificSettings:
         return k_frame
 
     def reset_k_settings(self):
-        pass
+        print('reset_k_settings')
 
     def apply_k_settings(self):
         pass
+
+    def update_k_input(self):
+        period = self.period_input.value()*2
+        k_values = [int(i/period*100) for i in range(period+1) if i/period*100 % 1 == 0]
+        value = self.k_input.value() if self.k_input.value() in k_values else 50
+        self.k_input.update_lst(k_values)
+        self.k_input.set_value(value)
 
     def delay_settings(self):
         delay_label = QLabel('Смещение')
         self.delay_input = QLineEdit()
 
         reset_button = QPushButton('Сброс')
-        reset_button.clicked.connect(self.reset_delay_settings)
+        reset_button.clicked.connect(lambda: self.reset_delay_settings())
         apply_button = QPushButton('Применить')
-        apply_button.clicked.connect(self.apply_delay_settings)
+        apply_button.clicked.connect(lambda: self.apply_delay_settings())
         button_layout = QHBoxLayout()
         button_layout.addWidget(reset_button)
         button_layout.addWidget(apply_button)
@@ -150,15 +193,16 @@ class PatternSpecificSettings:
         return delay_frame
 
     def reset_delay_settings(self):
-        pass
+        print('reset_delay_settings')
 
     def apply_delay_settings(self):
         pass
 
-    def update_k_input(self):
-        period = self.period_input.value()*2
-        self.k_input.update_lst([int(i/period*100) for i in range(period+1) if i/period*100 % 1 == 0])
+    def update_delay_input(self):
+        pass
 
+    def initData(self):
+        pass
 
 class UserSpecificSettings:
     def __init__(self, specific_settings):

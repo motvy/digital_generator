@@ -1,6 +1,10 @@
+from collections import namedtuple
 
 from PyQt5.QtWidgets import QAbstractSpinBox
 
+
+GlobalSettings = namedtuple('GlobalSettings', 'frequency, amplitude, length')
+SpecificPatternSettings = namedtuple('SpecificPatternSettings', 'period, k, delay')
 
 stylesheet = """
 QTabWidget::pane { /* The tab widget frame */
@@ -31,19 +35,14 @@ QTabBar::tab:selected {
     margin-right: 1px;
 }
 
-QGridLayout:gridcell(0,1) 
-{
-    border: 10px solid black;
-    margin: 0px;
-}
 """
 
 class NewQAbstractSpinBox(QAbstractSpinBox):
-    def __init__(self, lst, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.lst = lst
-        self.indx = 0
-        self.lineEdit().setText(str(lst[self.indx]))
+        self.lst = []
+        self.indx= 0
+        self.lineEdit().setText('')
 
     def stepEnabled(self):
         if self.indx == 0:
@@ -60,8 +59,15 @@ class NewQAbstractSpinBox(QAbstractSpinBox):
             self.lineEdit().setText(str(self.lst[self.indx]))
         else:
             pass
-    
-    def update_lst(self, lst):
+
+    def setRange(self, lst):
         self.lst = lst
         self.indx = 0
         self.lineEdit().setText(str(lst[self.indx]))
+    
+    def value(self):
+        return self.lst[self.indx]
+
+    def setValue(self, value):
+        self.indx = self.lst.index(value) if value in self.lst else 0
+        self.lineEdit().setText(str(self.lst[self.indx]))

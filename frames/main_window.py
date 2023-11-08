@@ -6,25 +6,23 @@
 
 """
 
-from customs import NewQAbstractSpinBox, stylesheet
-from global_settings import GlobalSettings
-from specific_settings import SpecificSettings
-from channels_plot import ChannelsPlot
+from utils import stylesheet
+from frames.global_settings import GlobalSettings
+from frames.specific_settings import SpecificSettings
+from frames.channels_plot import ChannelsPlot
+from settingsdb import SettingsDb
 
-import sys
 import datetime
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import QSize, Qt, QTimer
-from PyQt5.QtGui import QFont, QIntValidator
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QDoubleSpinBox, QSpinBox,\
-      QLineEdit, QPushButton, QFrame, QTabWidget, QTableWidget, QTableWidget, QTableWidgetItem, QAbstractItemView, QCheckBox, QWidget, QGridLayout, \
-      QAbstractSpinBox
+from PyQt5.QtCore import QSize, QTimer
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QWidget
 
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+
+        self.db = SettingsDb()
 
         self.setStyleSheet(stylesheet)
 
@@ -110,12 +108,12 @@ class MainWindow(QWidget):
         self.timer_label.setText(str(datetime.timedelta(seconds=self.timer_count)))
 
     def initData(self):
-        pass
+        self.global_settings.initData()
 
 
-app = QApplication(sys.argv)
+# app = QApplication(sys.argv)
 
-window = MainWindow()
-window.show()
+# window = MainWindow()
+# window.show()
 
-app.exec()
+# app.exec()

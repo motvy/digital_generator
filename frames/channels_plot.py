@@ -1,3 +1,5 @@
+import config
+
 from PyQt5.QtWidgets import QLabel, QFrame, QGridLayout, QCheckBox, QVBoxLayout
 
 import pyqtgraph as pg
@@ -7,7 +9,7 @@ class ChannelsPlot():
     def __init__(self, main_window):
         self.main_window = main_window
 
-        self.colors = ['black', 'red', 'orange', 'brown', 'green', 'blue', 'indigo', 'violet']
+        self.colors = config.PLOT_COLORS
     
     def create(self):
         self.plot_layout = QGridLayout()
