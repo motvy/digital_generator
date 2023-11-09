@@ -12,4 +12,4 @@ DEFAULT_SPECIFIC_PATTERN_SETTINGS = {
 
 PLOT_COLORS = ['black', 'red', 'orange', 'brown', 'green', 'blue', 'indigo', 'violet']
 
-db_path = r'C:\Users\79190\Desktop\gen\settings.db'
+db_path = r'D:\python\motvy\digital_generator\settings.db'

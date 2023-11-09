@@ -63,7 +63,7 @@ class PatternSpecificSettings:
             self.selected_channel_layout.addWidget(label, 0, i, alignment=Qt.AlignCenter)
 
             channel_cb = QCheckBox()
-            channel_cb.clicked.connect(lambda: self.get_selected_channels())
+            channel_cb.clicked.connect(lambda: self.selected_channels_changed())
             self.selected_channel_layout.addWidget(channel_cb, 1, i, alignment=Qt.AlignCenter)
 
         channel_layout = QVBoxLayout()
@@ -100,6 +100,17 @@ class PatternSpecificSettings:
         period_frame.setFrameShape(QFrame.Panel)
 
         return period_frame
+    
+    def selected_channels_changed(self):
+        """
+        Зависимости:
+        Задержка < Длина
+        Полупериод < Длина
+        1) get_selected_channels -> [int]
+        2) change period - change k
+        3) change k
+        4) change delay
+        """
 
     def get_selected_channels(self):
         channels = []
@@ -119,7 +130,6 @@ class PatternSpecificSettings:
             self.selected_channel_layout.itemAtPosition(1, i).widget().setChecked(checked)
         
         self.select_all_channels_cb.setChecked(checked)
-
 
     def reset_period_settings(self):
         print('reset_period_settings')
@@ -148,7 +158,7 @@ class PatternSpecificSettings:
         k_layout = QVBoxLayout()
         k_layout.addWidget(k_label)
         k_layout.addWidget(self.k_input)
-        k_layout.addLayout(button_layout)
+        k_layout.addLayout(button_layout) 
 
         k_frame = QFrame(self.specific_settings.main_window)
         k_frame.setLayout(k_layout)
