@@ -8,26 +8,21 @@ import pyqtgraph as pg
 class ChannelsPlot():
     def __init__(self, main_window):
         self.main_window = main_window
+        self.db = main_window.db
 
         self.colors = config.PLOT_COLORS
+        self.plots = {}
     
     def create(self):
         self.plot_layout = QGridLayout()
 
         for i in range(8):
             plot_graph = pg.PlotWidget()
-            plot_graph.setLimits(xMin = -0.01, yMin = -1, xMax=6.01, yMax=2)
-            plot_graph.setMouseEnabled(x=False, y=False)
-            
-            plot_graph.getPlotItem().hideAxis('bottom')
-            plot_graph.getPlotItem().hideAxis('left')
-            time = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]
-            temperature = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1]
-            plot_graph.plot(time, temperature, pen={'color':self.colors[i]})
-            plot_graph.setBackground('#e0e0e0')
+            plot_graph.setBackground('white')
 
             plot_cb = QCheckBox()
-            plot_cb.clicked.connect(self.set_channel_enabled)
+            plot_cb.clicked.connect(lambda: self.set_channel_enabled())
+            plot_cb.setChecked(True)
 
             plot_label = QLabel(str(i))
             plot_label.setStyleSheet('font-size: 10pt;')
@@ -64,3 +59,51 @@ class ChannelsPlot():
             self.main_window.buttons_frame.setDisabled(True)
         else:
             self.main_window.buttons_frame.setDisabled(False)
+    
+    def go_plot(self):
+        length = self.db.get_global_settings().length
+        for i in range(8):
+            plot_graph = self.plot_layout.itemAtPosition(i, 2).widget()
+            if i in self.plots:
+                plot_graph.removeItem(self.plots[i])
+
+            plot_graph.setLimits(xMin = -0.01, yMin = -0.01, xMax=length + 0.01, yMax=1.01)
+            plot_graph.setMouseEnabled(x=False, y=False)
+            plot_graph.getPlotItem().hideAxis('bottom')
+            plot_graph.getPlotItem().hideAxis('left')
+
+            specific_settings = self.db.get_specific_pattern_settings(i)
+            time, temperature = self.generate_plot_data(length, specific_settings.period, specific_settings.k, specific_settings.delay)
+            self.plots[i] = plot_graph.plot(time, temperature, pen={'color':self.colors[i]})
+
+
+    def generate_plot_data(self, length, period, k, delay):
+        temperature = [0] * (delay * 2)
+        if k == 100:
+            up = [1] * (length - delay + 1)
+            low = []
+            if temperature:
+                temperature.append(0)
+        elif k == 0:
+            up = []
+            low = [0] * (length - delay + 1)
+        else:
+            count = 0 if period == 1 else 2**(period-1)
+
+            k_up = (2 + count) * k // 100 - 1
+            k_low = count - k_up
+            up = [0, 1] + [1, 1] * (k_up)
+            low = [1, 0] + [0, 0] * (k_low)
+     
+
+        time = [i // 2 for i in range(0, (length+1)*2)]
+        while len(temperature) < len(time):
+            temperature.extend(up)
+            temperature.extend(low)
+
+        temperature = temperature[:len(time)]
+
+        if temperature[-2:] == [0, 1]:
+            temperature[-1] = 0
+
+        return time, temperature

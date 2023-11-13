@@ -33,6 +33,7 @@ class SettingsDb():
                                     frequency INTEGER
                                     , amplitude INTEGER
                                     , length INTEGER
+                                    , frequency_source INTEGER
                                 )''')
 
             self.cursor.execute('''CREATE TABLE SpecificPatternSettings (
@@ -43,7 +44,10 @@ class SettingsDb():
                                 )''')
             
             g_settings = config.DEFAULT_GLOBAL_SETTINGS
-            self.cursor.execute("INSERT INTO GlobalSettings values(?,?,?)", (g_settings['frequency']['default'], g_settings['amplitude']['default'], g_settings['length']['default']))
+            self.cursor.execute("INSERT INTO GlobalSettings values(?,?,?,?)", (g_settings['frequency']['default'], 
+                                                                             g_settings['amplitude']['default'], 
+                                                                             g_settings['length']['default'], 
+                                                                             g_settings['frequency_source']['default']))
 
             sp_settings = config.DEFAULT_SPECIFIC_PATTERN_SETTINGS
             for i in range(8):
@@ -75,6 +79,10 @@ class SettingsDb():
 
     def set_global_length(self, length):
         self.cursor.execute("UPDATE GlobalSettings SET length=?", (length,))
+        self.conn.commit()
+    
+    def set_global_frequency_source(self, frequency_source):
+        self.cursor.execute("UPDATE GlobalSettings SET frequency_source=?", (frequency_source,))
         self.conn.commit()
 
     def get_specific_pattern_settings(self, channel):

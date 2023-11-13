@@ -7,6 +7,7 @@
 """
 
 from utils import stylesheet
+import config
 from frames.global_settings import GlobalSettings
 from frames.specific_settings import SpecificSettings
 from frames.channels_plot import ChannelsPlot
@@ -14,8 +15,9 @@ from settingsdb import SettingsDb
 
 import datetime
 
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QTimer
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QWidget
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QWidget, QMessageBox
 
 
 class MainWindow(QWidget):
@@ -28,6 +30,8 @@ class MainWindow(QWidget):
 
         self.setWindowTitle("Digital generator")
         self.setFixedSize(QSize(1440, 810))
+
+        self.setWindowIcon(QIcon(config.app_icon_path))
 
         self.initUI()
         self.initData()
@@ -50,18 +54,24 @@ class MainWindow(QWidget):
         self.parameters_frame.setFrameShape(QFrame.Panel)
 
         self.buttons_frame = self.main_buttons()
-        self.buttons_frame.setDisabled(True)
+        self.buttons_frame.setDisabled(False)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.parameters_frame)
         main_layout.addWidget(self.buttons_frame)
         self.setLayout(main_layout)
 
+    def regenerate_plot(self):
+        self.chanels_plot.go_plot()
+
     def start_generate(self):
-        self.start_timer()
-        self.start_button.setText('Стоп')
-        self.start_button.clicked.connect(self.stop_generate)
-        self.parameters_frame.setEnabled(False)
+        if self.global_settings.hasUnsaved() or self.specific_settings.hasUnsaved():
+            QMessageBox.critical(self, 'Digital generator', 'Генерация невозможна. Не все параметры применены.')
+        else:
+            self.start_timer()
+            self.start_button.setText('Стоп')
+            self.start_button.clicked.connect(self.stop_generate)
+            self.parameters_frame.setEnabled(False)
 
     def stop_generate(self):
         self.stop_timer()
@@ -109,7 +119,8 @@ class MainWindow(QWidget):
 
     def initData(self):
         self.global_settings.initData()
-
+        self.specific_settings.initData()
+        self.regenerate_plot()
 
 # app = QApplication(sys.argv)
 

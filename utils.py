@@ -3,7 +3,7 @@ from collections import namedtuple
 from PyQt5.QtWidgets import QAbstractSpinBox
 
 
-GlobalSettings = namedtuple('GlobalSettings', 'frequency, amplitude, length')
+GlobalSettings = namedtuple('GlobalSettings', 'frequency, amplitude, length, frequency_source')
 SpecificPatternSettings = namedtuple('SpecificPatternSettings', 'period, k, delay')
 
 stylesheet = """
@@ -63,10 +63,10 @@ class NewQAbstractSpinBox(QAbstractSpinBox):
     def setRange(self, lst):
         self.lst = lst
         self.indx = 0
-        self.lineEdit().setText(str(lst[self.indx]))
+        # self.lineEdit().setText(str(lst[self.indx]))
     
     def value(self):
-        return self.lst[self.indx]
+        return self.lst[self.indx] if self.lst else None
 
     def setValue(self, value):
         self.indx = self.lst.index(value) if value in self.lst else 0
