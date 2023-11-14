@@ -121,14 +121,22 @@ class PatternSpecificSettings:
 
     def change_global_length(self):
         global_length = self.db.get_global_settings().length
-        
+
         period = self.period_input.text()
         if period and int(period) > global_length // 2:
             self.period_input.setText(str(global_length // 2))
+            self.apply_period_settings()
 
         delay = self.delay_input.text()
         if delay and int(delay) > global_length - 1:
             self.delay_input.setText(str(global_length - 1))
+            self.apply_delay_settings()
+        
+        # for i in range(8):
+        #     settings = self.db.get_specific_pattern_settings()
+        #     period = settings.period
+        #     delay = settings.delay
+
 
     def period_settings(self):
         self.period_label = QLabel('Полупериод')
@@ -177,6 +185,7 @@ class PatternSpecificSettings:
             self.period_label.setText(self.period_label.text().strip('*'))
             for ch in self.selected_channels:
                 self.db.set_specific_pattern_period(ch, period)
+            self.channels_settings = [self.db.get_specific_pattern_settings(ch) for ch in self.selected_channels]
 
         self.update_k_input()
 
@@ -187,6 +196,7 @@ class PatternSpecificSettings:
             self.period_input.setText(str(self.channels_settings[0].period))
             self.db_settings_dict['period'] = self.channels_settings[0].period
             self.k_frame.setEnabled(True)
+            self.apply_period_settings()
         else:
             self.period_input.clear()
             self.k_input.lineEdit().clear()
@@ -203,8 +213,6 @@ class PatternSpecificSettings:
 
     def k_settings(self):
         self.k_label = QLabel('Коэффициент заполнения (%)')
-        # period = self.period_input.value()*2
-        # self.k_input = NewQAbstractSpinBox([int(i/period*100) for i in range(period+1) if i/period*100 % 1 == 0])
         self.k_input = NewQAbstractSpinBox()
         self.k_input.lineEdit().setReadOnly(True)
         self.k_input.lineEdit().textChanged.connect(lambda: self.change_k())
@@ -239,6 +247,7 @@ class PatternSpecificSettings:
             self.k_label.setText(self.k_label.text().strip('*'))
             for ch in self.selected_channels:
                 self.db.set_specific_pattern_k(ch, k)
+            self.channels_settings = [self.db.get_specific_pattern_settings(ch) for ch in self.selected_channels]
         
         self.specific_settings.main_window.regenerate_plot()
 
@@ -265,13 +274,13 @@ class PatternSpecificSettings:
         self.k_input.setRange(k_values)
         if len(set([ch.k for ch in self.channels_settings])) == 1:
             if self.channels_settings[0].k in k_values:
-                self.db_settings_dict['k'] = self.channels_settings[0].k
                 self.k_input.setValue(self.channels_settings[0].k)
-            elif self.k_input.value() and self.k_input.value() in k_values:
+                self.apply_k_settings()
+            elif self.k_input.value() and int(self.k_input.value()) in k_values:
                 pass
             else:
-                self.db_settings_dict['k'] = config.DEFAULT_SPECIFIC_PATTERN_SETTINGS['k']
                 self.k_input.setValue(config.DEFAULT_SPECIFIC_PATTERN_SETTINGS['k'])
+                self.apply_k_settings()
         else:
             self.k_input.lineEdit().clear()
 
@@ -322,6 +331,7 @@ class PatternSpecificSettings:
             self.delay_label.setText(self.delay_label.text().strip('*'))
             for ch in self.selected_channels:
                 self.db.set_specific_pattern_delay(ch, delay)
+            self.channels_settings = [self.db.get_specific_pattern_settings(ch) for ch in self.selected_channels]
         
         self.specific_settings.main_window.regenerate_plot()
 
@@ -339,6 +349,7 @@ class PatternSpecificSettings:
         if len(set([ch.delay for ch in self.channels_settings])) == 1:
             self.db_settings_dict['delay'] = self.channels_settings[0].delay
             self.delay_input.setText(str(self.channels_settings[0].delay))
+            self.apply_delay_settings()
         else:
             self.delay_input.clear()
 
@@ -351,7 +362,9 @@ class PatternSpecificSettings:
             self.period_frame.setEnabled(False)
             self.k_frame.setEnabled(False)
             self.delay_input.clear()
+            self.delay_label.setText(self.delay_label.text().strip('*'))
             self.period_input.clear()
+            self.period_label.setText(self.period_label.text().strip('*'))
             self.k_input.lineEdit().clear()
         else:
             self.delay_frame.setEnabled(True)
