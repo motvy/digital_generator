@@ -1,4 +1,5 @@
 import config
+import utils
 
 from PyQt5.QtWidgets import QLabel, QFrame, QGridLayout, QCheckBox, QHBoxLayout, QVBoxLayout, QPushButton
 
@@ -20,7 +21,8 @@ class ChannelsPlot():
         self.plot_layout = QGridLayout()
 
         for i in range(8):
-            plot_graph = pg.PlotWidget()
+            plot_graph = utils.MyPlotWidget()
+            plot_graph.clicked.connect(lambda: self.update(i))
             plot_graph.setBackground('white')
 
             plot_cb = QCheckBox()
@@ -40,6 +42,20 @@ class ChannelsPlot():
         plot_frame.setFrameShape(QFrame.Panel)
 
         return plot_frame
+
+    def update(self, i):
+        for indx in range(self.plot_layout.count()):
+            plot = self.plot_layout.itemAtPosition(indx, 2)
+            item = self.plot_layout.itemAtPosition(indx, 0)
+
+            if not item or not plot:
+                break
+
+            if plot.widget() == self.main_window.sender():
+                cb = item.widget()
+                cb.setChecked(not cb.isChecked())
+                self.set_channel_enabled()
+                break
 
     def set_channel_enabled(self):
         not_any_checked = True
@@ -97,7 +113,7 @@ class ChannelsPlot():
                 if i not in selected_channels:
                     continue
                 
-                self.live_plot[i]['temperature'] = self.live_plot[i]['temperature'][-2:] + self.live_plot[i]['temperature'][:-2]
+                # self.live_plot[i]['temperature'] = self.live_plot[i]['temperature'][-2:] + self.live_plot[i]['temperature'][:-2]
                 temperature = self.live_plot[i]['temperature']
                 time = self.live_plot[i]['time']
                 if len(temperature) < len(time):

@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 
 __all__ = ["frames", "utils", "config", "settingsdb"]
-from gen import *
+from digital_generator import *

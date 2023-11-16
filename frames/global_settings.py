@@ -53,7 +53,7 @@ class GlobalSettings():
         settings_frame.setLayout(settings_layout)
         settings_frame.setFrameShape(QFrame.Panel)
         settings_frame.setFixedWidth(270)
-        settings_frame.setFixedHeight(270)
+        settings_frame.setFixedHeight(230)
 
         return settings_frame
 

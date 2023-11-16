@@ -29,7 +29,8 @@ class MainWindow(QWidget):
         self.setStyleSheet(stylesheet)
 
         self.setWindowTitle("Digital generator")
-        self.setFixedSize(QSize(1440, 810))
+        # self.setFixedSize(QSize(1440, 810))
+        self.setFixedSize(QSize(1200, 700))
 
         self.setWindowIcon(QIcon(config.app_icon_path))
 
@@ -69,7 +70,8 @@ class MainWindow(QWidget):
             QMessageBox.critical(self, 'Digital generator', 'Генерация невозможна. Не все параметры применены.')
             pass
         else:
-            self.start_timer()
+            # self.start_timer()
+            self.regenerate_plot(True)
             self.start_button.setText('Стоп')
             self.start_button.clicked.disconnect()
             self.start_button.clicked.connect(self.stop_generate)
@@ -132,11 +134,4 @@ class MainWindow(QWidget):
 
         plot_timer = QTimer(self)
         plot_timer.timeout.connect(self.show_plot)
-        plot_timer.start(250)
-
-# app = QApplication(sys.argv)
-
-# window = MainWindow()
-# window.show()
-
-# app.exec()
+        plot_timer.start(10)

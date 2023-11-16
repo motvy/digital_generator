@@ -1,7 +1,8 @@
 from collections import namedtuple
 
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QAbstractSpinBox
-
+import pyqtgraph as pg
 
 GlobalSettings = namedtuple('GlobalSettings', 'frequency, amplitude, length, frequency_source')
 SpecificPatternSettings = namedtuple('SpecificPatternSettings', 'period, k, delay')
@@ -71,3 +72,9 @@ class NewQAbstractSpinBox(QAbstractSpinBox):
     def setValue(self, value):
         self.indx = self.lst.index(value) if value in self.lst else 0
         self.lineEdit().setText(str(self.lst[self.indx]))
+
+class MyPlotWidget(pg.PlotWidget):
+    clicked = pyqtSignal()
+    def mouseReleaseEvent(self, QMouseEvent):
+        if QMouseEvent.button()==Qt.LeftButton:
+            self.clicked.emit()
