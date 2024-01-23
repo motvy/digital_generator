@@ -42,6 +42,11 @@ class SettingsDb():
                                     , k INTEGER
                                     , delay INTEGER
                                 )''')
+
+            self.cursor.execute('''CREATE TABLE SpecificUserSettings (
+                                    channel INTEGER
+                                    , value TEXT
+                                )''')
             
             g_settings = config.DEFAULT_GLOBAL_SETTINGS
             self.cursor.execute("INSERT INTO GlobalSettings values(?,?,?,?)", (g_settings['frequency']['default'], 
@@ -50,8 +55,10 @@ class SettingsDb():
                                                                              g_settings['frequency_source']['default']))
 
             sp_settings = config.DEFAULT_SPECIFIC_PATTERN_SETTINGS
+            su_settings = config.DEFAULT_SPECIFIC_USER_SETTINGS
             for i in range(8):
                 self.cursor.execute("INSERT INTO SpecificPatternSettings values(?,?,?,?)", (i, sp_settings['period'], sp_settings['k'], sp_settings['delay']))
+                self.cursor.execute("INSERT INTO SpecificUserSettings values(?, ?)", (i, su_settings['value'],))
 
             self.conn.commit()
 
@@ -103,4 +110,14 @@ class SettingsDb():
 
     def set_specific_pattern_delay(self, channel, delay):
         self.cursor.execute("UPDATE SpecificPatternSettings SET delay=? WHERE channel=?", (delay, channel))
+        self.conn.commit()
+
+    def get_specific_user_settings(self, channel):
+        self.cursor.execute("SELECT value FROM SpecificUserSettings WHERE channel=?", (channel,))
+        res = self.cursor.fetchone()
+
+        return res[0]
+
+    def set_specific_user_value(self, channel, value):
+        self.cursor.execute("UPDATE SpecificUserSettings SET value=? WHERE channel=?", (value, channel))
         self.conn.commit()

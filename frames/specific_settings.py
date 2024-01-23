@@ -4,40 +4,47 @@ import config
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFrame, QTabWidget, QSpinBox, QCheckBox, QGridLayout
+from PyQt5 import sip, QtWidgets
 
 
 class SpecificSettings():
     def __init__(self, main_window):
         self.main_window = main_window
         self.db = main_window.db
+
+        self.current_mode = 0 # 0 - Pattern settings, 1 - User settings
     
     def create(self):
         self.pattern_settings = PatternSpecificSettings(self, self.db)
-        self.user_settings = UserSpecificSettings(self, self.db)
-        pattern_layout = self.pattern_settings.create()
-        user_layout = self.user_settings.create()
+        # self.user_settings = UserSpecificSettings(self, self.db)
+        self.pattern_layout = self.pattern_settings.create()
+        # self.user_layout = self.user_settings.create()
 
-        pattern_frame = QFrame(self.main_window)
-        pattern_frame.setLayout(pattern_layout)
-        pattern_frame.setFrameShape(QFrame.Panel)
+        self.pattern_frame = QFrame(self.main_window)
+        self.pattern_frame.setLayout(self.pattern_layout)
+        self.pattern_frame.setFrameShape(QFrame.Panel)
         # user_frame = QFrame(self.main_window)
-        # user_frame.setLayout(user_layout)
+        # user_frame.setLayout(self.user_layout)
         # user_frame.setFrameShape(QFrame.Panel)
+
 
         # settings_tab = QTabWidget()
         # settings_tab.addTab(pattern_frame, 'Pattern')
         # settings_tab.addTab(user_frame, 'User')
         # settings_tab.setFixedWidth(270)
 
-        pattern_frame.setFixedWidth(270)
+        self.pattern_frame.setFixedWidth(270)
 
-        return pattern_frame
+        return self.pattern_frame
+    
+    def new_layout(self, lt):
+        self.pattern_frame.setLayout(lt)
     
     def initData(self):
-        self.pattern_settings.initData()
         self.pattern_settings.select_all_channels()
     
     def hasUnsaved(self):
+
         return self.pattern_settings.has_unsaved()
 
 
@@ -50,15 +57,40 @@ class PatternSpecificSettings:
         self.db_settings_dict = {}
     
     def create(self):
-        layout = QVBoxLayout()
-        layout.addLayout(self.select_channel())
-        layout.addStretch(1)
-        layout.addWidget(self.period_settings())
-        layout.addWidget(self.k_settings())
-        layout.addWidget(self.delay_settings())
-        layout.addStretch(1)
+        self.layout = QVBoxLayout()
+        self.layout.addStretch(1)
+        self.layout.addLayout(self.select_channel())
+        self.layout.addStretch(1)
+        self.layout.addWidget(self.period_settings())
+        self.layout.addWidget(self.k_settings())
+        self.layout.addWidget(self.delay_settings())
+        self.layout.addStretch(1)
+        self.layout.addWidget(self.operation_mode_button())
 
-        return layout
+        self.initData()
+        self.specific_settings.current_mode = 0
+        self.specific_settings.main_window.regenerate_plot()
+        return self.layout
+
+    def operation_mode_button(self):
+        mode_button = QPushButton("В режим ручного задания параметров")
+        mode_button.clicked.connect(lambda: self.deleteLayout(self.layout, UserSpecificSettings(self.specific_settings, self.db).create()))
+        # mode_button.setStyleSheet("QPushButton {background-color: #f0f0f0; border: 0px;}")
+        # mode_button.setFixedHeight(30)
+        return mode_button
+
+    def deleteLayout(self, layout, new_lt):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.deleteLayout(item.layout(), new_lt)
+            sip.delete(layout)
+
+        self.specific_settings.new_layout(new_lt)
 
     def select_channel(self):
         channel_label = QLabel('Выбранные каналы')
@@ -354,6 +386,7 @@ class PatternSpecificSettings:
             self.delay_input.clear()
 
     def initData(self):
+        self.specific_settings.pattern_settings = self
         self.selected_channels = self.get_selected_channels()
         self.channels_settings = [self.db.get_specific_pattern_settings(ch) for ch in self.selected_channels]
 
@@ -393,8 +426,136 @@ class UserSpecificSettings:
     def __init__(self, specific_settings, db):
         self.specific_settings = specific_settings
         self.db = db
+        self.db_settings = []
+        self.channels_settings = []
     
     def create(self):
-        user_layout = QVBoxLayout()
+        reset_button = QPushButton('По умолчанию')
+        reset_button.clicked.connect(lambda: self.reset_settings())
+        apply_button = QPushButton('Применить')
+        apply_button.clicked.connect(lambda: self.apply_settings())
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(reset_button)
+        button_layout.addWidget(apply_button)
 
-        return user_layout
+
+        self.layout = QVBoxLayout()
+        self.layout.addLayout(self.get_channels())
+        self.layout.addStretch()
+        self.layout.addLayout(button_layout)
+        self.layout.addWidget(self.operation_mode_button())
+
+        self.initData()
+        self.specific_settings.current_mode = 1
+        self.specific_settings.main_window.regenerate_plot()
+
+        return self.layout
+
+    def reset_settings(self):
+        for indx in  range(8):
+            self.db.set_specific_user_value(indx, config.DEFAULT_SPECIFIC_USER_SETTINGS['value'])
+        
+        self.initData()
+
+    def apply_settings(self):
+        for indx in  range(self.channels_layout.count()):
+            item_lt = self.channels_layout.itemAtPosition(indx, 0)
+            item_le = item_lt.itemAtPosition(1, 0).itemAtPosition(0, 1).widget()
+            le_text = item_le.text().upper()
+
+            if set(item_le.text()) - {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'A', 'B', 'C', 'D', 'E', 'F'}:
+                le_text = config.DEFAULT_SPECIFIC_USER_SETTINGS['value']
+
+            self.db_settings[indx] = le_text
+            self.db.set_specific_user_value(indx, le_text)
+            item_le.setText(le_text)
+            lb = item_lt.itemAtPosition(0, 0).widget()
+            lb.setText(lb.text().strip('*'))
+        
+        self.specific_settings.main_window.regenerate_plot()
+
+    def initData(self):
+        self.specific_settings.pattern_settings = self
+        self.channels_settings = [self.db.get_specific_user_settings(ch) for ch in range(8)]
+        self.db_settings = self.channels_settings
+
+        for indx in  range(self.channels_layout.count()):
+            item_lt = self.channels_layout.itemAtPosition(indx, 0)
+            item_le = item_lt.itemAtPosition(1, 0).itemAtPosition(0, 1).widget()
+            item_le.setText(self.channels_settings[indx])
+
+    def get_channels(self):
+
+        self.channels_layout = QGridLayout()
+
+        for i in range(8):
+            plot_le = QLineEdit()
+            plot_le.textChanged.connect(lambda: self.change_val())
+            plot_le.setMaxLength(32)
+
+            phl = QGridLayout()
+            phl.addWidget(QLabel("0x"), 0, 0)
+            phl.addWidget(plot_le, 0, 1)
+            # plot_le.setCursorPosition(3)
+            # plot_le.setReadOnly(1);
+            # plot_cb.clicked.connect(lambda: self.set_channel_enabled())
+            # plot_cb.setChecked(True)
+
+            plot_label = QLabel("Канал " + str(i))
+            # plot_label.setStyleSheet('font-size: 10pt;')
+            # plot_label.setDisabled(True)
+            curr = QGridLayout() 
+            curr.addWidget(plot_label, 0, 0)
+            curr.addLayout(phl, 1, 0)
+
+            self.channels_layout.addLayout(curr, i, 0)
+
+        return self.channels_layout
+
+    def change_val(self):
+        item = self.specific_settings.main_window.sender()
+
+        for indx in  range(self.channels_layout.count()):
+            item_lt = self.channels_layout.itemAtPosition(indx, 0)
+            item_le = item_lt.itemAtPosition(1, 0).itemAtPosition(0, 1).widget()
+            if item == item_le:
+                lb = item_lt.itemAtPosition(0, 0).widget()
+                if item_le.text() != self.db_settings[indx]:
+                    lb.setText(lb.text().strip('*') + '*')
+                else:
+                    lb.setText(lb.text().strip('*'))
+                break
+        # if int(self.k_input.value()) != self.db_settings_dict.get('k', None):
+        #     self.k_label.setText(self.k_label.text().strip('*') + '*')
+        # else:
+        #     self.k_label.setText(self.k_label.text().strip('*'))
+        # pass
+
+    def operation_mode_button(self):
+        mode_button = QPushButton("В режим автоматичского задания параметров")
+        mode_button.clicked.connect(lambda: self.deleteLayout(self.layout, PatternSpecificSettings(self.specific_settings, self.db).create()))
+        # mode_button.setStyleSheet("QPushButton {background-color: #f0f0f0; border: 0px;}")
+        # mode_button.setFixedHeight(30)
+        return mode_button
+
+    def deleteLayout(self, layout, new_lt):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.deleteLayout(item.layout(), new_lt)
+            sip.delete(layout)
+
+        self.specific_settings.new_layout(new_lt)
+
+    def has_unsaved(self):
+        for indx in  range(self.channels_layout.count()):
+            item_lt = self.channels_layout.itemAtPosition(indx, 0)
+            lb = item_lt.itemAtPosition(0, 0).widget()
+            if '*' in lb.text():
+                return True
+
+        return False

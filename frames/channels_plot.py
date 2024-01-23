@@ -1,9 +1,7 @@
 import config
 import utils
 
-from PyQt5.QtWidgets import QLabel, QFrame, QGridLayout, QCheckBox, QHBoxLayout, QVBoxLayout, QPushButton
-
-import pyqtgraph as pg
+from PyQt5.QtWidgets import QLabel, QFrame, QGridLayout, QCheckBox
 
 
 class ChannelsPlot():
@@ -66,7 +64,6 @@ class ChannelsPlot():
             if not item or not label or not plot:
                 break
 
-
             plot_graph = plot.widget()
             length = self.db.get_global_settings().length
             if indx in self.plots:
@@ -95,7 +92,7 @@ class ChannelsPlot():
         else:
             self.main_window.buttons_frame.setDisabled(False)
     
-    def go_plot(self, is_live=False):
+    def go_plot(self, mode=0, is_live=False):
         selected_channels = self.get_selected_channels()
         length = self.db.get_global_settings().length
         for i in range(8):
@@ -109,40 +106,33 @@ class ChannelsPlot():
             plot_graph.getPlotItem().hideAxis('left')
 
             specific_settings = self.db.get_specific_pattern_settings(i)
-            if is_live:
-                if i not in selected_channels:
-                    continue
-                
-                # self.live_plot[i]['temperature'] = self.live_plot[i]['temperature'][-2:] + self.live_plot[i]['temperature'][:-2]
-                temperature = self.live_plot[i]['temperature']
-                time = self.live_plot[i]['time']
-                if len(temperature) < len(time):
-                    temperature = temperature + [temperature[-1]]*2
-                
-                self.plots[i] = plot_graph.plot(time, temperature, pen={'color':self.colors[i]})
+            user_setting_val = self.db.get_specific_user_settings(i)
+            if mode == 1:
+                time, temperature = self.generate_user_plot_data(length, user_setting_val)
+                self.static_plot[i] = {'time': time, 'temperature': temperature}
+
+                color = self.colors[i] if i in selected_channels else '#d6d6d6'
+                self.plots[i] = plot_graph.plot(time, temperature, pen={'color':color})
             else:
                 time, temperature = self.generate_plot_data(length, specific_settings.period, specific_settings.k, specific_settings.delay)
                 self.static_plot[i] = {'time': time, 'temperature': temperature}
-            
+
                 color = self.colors[i] if i in selected_channels else '#d6d6d6'
                 self.plots[i] = plot_graph.plot(time, temperature, pen={'color':color})
-                if temperature[:2] == [0, 0]:
-                    if temperature[-2:] ==  [1, 0]:
-                        self.live_plot[i] = {'time': time, 'temperature': temperature[2:]}
-                    elif temperature[-2:] == [1, 1]:
-                        temperature[-1] = 0
-                        self.live_plot[i] = {'time': time, 'temperature': temperature[2:]}
-                    else:
-                        self.live_plot[i] = {'time': time, 'temperature': temperature[:-2]}
-                else:
-                    if temperature[-2:] == [0, 0]:
-                        self.live_plot[i] = {'time': time, 'temperature': temperature[2:]}
-                    elif temperature[-2:] == [0, 1]:
-                        temperature[0] = 0
-                        self.live_plot[i] = {'time': time, 'temperature': temperature[:-2]}
-                    else:
-                        self.live_plot[i] = {'time': time, 'temperature': temperature[:-2]}
 
+    def get_plots_data(self):
+        selected_channels = self.get_selected_channels()
+        data = []
+        length = self.db.get_global_settings().length
+        for i in range(8):
+            c = self.static_plot[i]['temperature'][2::2] if i in selected_channels else [0]*length
+            data.append(c)
+
+        result_data = []
+        for i in range(length):
+            result_data.append(int("".join([str(el[i]) for el in data[::-1]]), 2))
+
+        return data, result_data
 
     def generate_plot_data(self, length, period, k, delay):
         temperature = [0] * (delay * 2)
@@ -171,6 +161,21 @@ class ChannelsPlot():
         if delay and length > delay:
             temperature[delay * 2] = 0
         temperature = temperature[:len(time)]
+
+        return time, temperature
+    
+    def generate_user_plot_data(self, length, user_setting_val):
+        num_of_bits = len(user_setting_val) * 4
+        bin_lst = list(bin(int(user_setting_val, 16))[2:].zfill(num_of_bits))
+
+        temperature = []
+        for i in range(length):
+            temperature.extend([int(bin_lst[i % len(bin_lst)])] * 2)
+        
+        curr = temperature[0]
+        temperature = [curr] + temperature + [curr]
+
+        time = [i // 2 for i in range(0, (length+1)*2)]
 
         return time, temperature
 
